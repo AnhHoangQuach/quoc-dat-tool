@@ -4,7 +4,7 @@ const { toJSON, paginate } = require('./plugins');
 const tripSchema = mongoose.Schema(
   {
     timeOccurence: {
-      type: String,
+      type: Date,
       required: true,
     },
     pathOne: {
@@ -28,7 +28,6 @@ const tripSchema = mongoose.Schema(
     },
     value: {
       type: String,
-      required: true,
     },
     indicator: {
       type: String,

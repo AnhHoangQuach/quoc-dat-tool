@@ -4,7 +4,7 @@ const { toJSON, paginate } = require('./plugins');
 const historySchema = mongoose.Schema(
   {
     timeOccurence: {
-      type: String,
+      type: Date,
       required: true,
     },
     pathOne: {
@@ -28,7 +28,6 @@ const historySchema = mongoose.Schema(
     },
     value: {
       type: String,
-      required: true,
     },
     indicator: {
       type: String,
