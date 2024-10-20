@@ -1,6 +1,6 @@
 const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
-const { historyService, tripService } = require('../services');
+const { tripService } = require('../services');
 const ExcelJS = require('exceljs');
 const pick = require('../utils/pick');
 
@@ -63,19 +63,19 @@ const importData = catchAsync(async (req, res) => {
     }
   });
 
-  const results = [];
+  let results = [];
   for (const trip of tripToSave) {
     results.push({
       ...trip,
-      isCheck: !dataToSave.some(
+      isChecked: !dataToSave.some(
         (item) =>
           item.timeOccurence === trip.timeOccurence && item.pathOne === trip.pathOne && item.pathSecond === trip.pathSecond,
       ),
     });
   }
 
-  if (results.length > 0) await tripService.insertTrip(results);
-  return res.status(httpStatus.CREATED).send({ message: 'Imported' });
+  if (results.length > 0) results = await tripService.insertTrip(results);
+  return res.status(httpStatus.CREATED).send(results);
 });
 
 const exportData = catchAsync(async (req, res) => {
