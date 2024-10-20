@@ -1,6 +1,6 @@
 const express = require('express');
 const auth = require('../../middlewares/auth');
-const historyController = require('../../controllers/history.controller');
+const tripController = require('../../controllers/trip.controller');
 const multer = require('multer');
 
 const upload = multer({
@@ -16,7 +16,7 @@ const upload = multer({
 
 const router = express.Router();
 
-router.route('/import').post(auth('manageUsers'), upload.single('file'), historyController.importData);
-router.route('/export').post(auth('manageUsers'), historyController.exportData);
+router.route('/import').post(auth('manageUsers'), upload.single('file'), tripController.importData);
+router.route('/export').post(auth('manageUsers'), tripController.exportData);
 
 module.exports = router;

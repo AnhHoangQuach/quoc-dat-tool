@@ -4,8 +4,6 @@ const { historyService, tripService } = require('../services');
 const ExcelJS = require('exceljs');
 const pick = require('../utils/pick');
 
-const BATCH_SIZE = 1000;
-
 const importData = catchAsync(async (req, res) => {
   const filePath = req.file.path;
 
@@ -39,15 +37,8 @@ const importData = catchAsync(async (req, res) => {
       };
 
       dataToSave.push(rowData);
-
-      if (dataToSave.length === BATCH_SIZE) {
-        await historyService.insertHistory(dataToSave);
-        rowsBatch = []; // Clear the batch after insertion
-      }
     }
   });
-
-  if (dataToSave.length > 0) await historyService.insertHistory(dataToSave);
 
   // Assuming the data is in the first sheet
   const worksheetTrip = workbook.getWorksheet(8);
@@ -69,47 +60,30 @@ const importData = catchAsync(async (req, res) => {
       };
 
       tripToSave.push(rowData);
-
-      if (tripToSave.length === BATCH_SIZE) {
-        await historyService.insertHistory(dataToSave);
-        rowsBatch = []; // Clear the batch after insertion
-      }
     }
   });
 
-  if (tripToSave.length > 0) await tripService.insertTrip(tripToSave);
+  const results = [];
+  for (const trip of tripToSave) {
+    results.push({
+      ...trip,
+      isCheck: !dataToSave.some(
+        (item) =>
+          item.timeOccurence === trip.timeOccurence && item.pathOne === trip.pathOne && item.pathSecond === trip.pathSecond,
+      ),
+    });
+  }
 
-  res.status(httpStatus.CREATED).send({ message: 'Imported' });
+  if (results.length > 0) await tripService.insertTrip(results);
+  return res.status(httpStatus.CREATED).send({ message: 'Imported' });
 });
 
 const exportData = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['from', 'to']);
+  const filter = pick(req.body, ['from', 'to']);
   const trips = await tripService.queryTrips(filter);
-  const results = [];
-  for (const trip of trips) {
-    const twoHoursBefore = new Date(new Date(trip.timeOccurence).getTime() - 2 * 60 * 60 * 1000);
-    const twoHoursAfter = new Date(new Date(trip.timeOccurence).getTime() + 2 * 60 * 60 * 1000);
 
-    // Find matching histories within ±2 hours and same path values
-    const matchingHistories = await historyService.queryHistories({
-      timeOccurence: { $gte: twoHoursBefore, $lte: twoHoursAfter },
-      pathOne: trip.pathOne,
-      pathSecond: trip.pathSecond,
-    });
-
-    if (matchingHistories.length > 0) {
-      results.push({
-        trip,
-        matchingHistories,
-        isCheck: matchingHistories.some(
-          (item) =>
-            item.timeOccurence === trip.timeOccurence &&
-            item.pathOne === trip.pathOne &&
-            item.pathSecond === trip.pathSecond,
-        ),
-      });
-    }
-  }
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename=thong_ke_su_co.xlsx');
 
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('thong_ke_su_co');
@@ -126,24 +100,21 @@ const exportData = catchAsync(async (req, res) => {
   worksheet.getRow(2).font = { bold: true };
 
   let rowStart = 3;
-  results.forEach((item) => {
+  trips.forEach((item) => {
     const row = worksheet.getRow(rowStart);
-    row.getCell(1).value = item.trip.timeOccurence;
-    row.getCell(2).value = item.trip.pathOne;
-    row.getCell(3).value = item.trip.pathSecond;
+    row.getCell(1).value = item.timeOccurence;
+    row.getCell(2).value = item.pathOne;
+    row.getCell(3).value = item.pathSecond;
     row.getCell(4).value = item.isCheck ? 'Có' : 'Không';
     row.commit();
     rowStart++;
   });
 
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', 'attachment; filename=thong_ke_su_co.xlsx');
-
   // Write the Excel file to the response stream
   await workbook.xlsx.write(res);
 
   // End the response
-  return res.end();
+  res.end();
 });
 
 module.exports = {
