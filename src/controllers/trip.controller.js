@@ -3,6 +3,7 @@ const catchAsync = require('../utils/catchAsync');
 const { tripService } = require('../services');
 const ExcelJS = require('exceljs');
 const pick = require('../utils/pick');
+const moment = require('moment');
 
 const importData = catchAsync(async (req, res) => {
   const filePath = req.file.path;
@@ -59,28 +60,48 @@ const importData = catchAsync(async (req, res) => {
         indicator: row.getCell(9).value,
       };
 
-      tripToSave.push(rowData);
+      const isDuplicate = tripToSave.some(
+        (trip) =>
+          new Date(trip.timeOccurence).getTime() === new Date(rowData.timeOccurence).getTime() &&
+          trip.pathOne === rowData.pathOne &&
+          trip.pathSecond === rowData.pathSecond,
+      );
+
+      if (!isDuplicate) {
+        tripToSave.push(rowData);
+      }
     }
   });
 
+  const existingTrips = await tripService.getTripsByFilter();
+
   let results = [];
   for (const trip of tripToSave) {
-    results.push({
-      ...trip,
-      isChecked: !dataToSave.some(
-        (item) =>
-          item.timeOccurence === trip.timeOccurence && item.pathOne === trip.pathOne && item.pathSecond === trip.pathSecond,
-      ),
-    });
+    const isDuplicate = existingTrips.some(
+      (existingTrip) =>
+        new Date(existingTrip.timeOccurence).getTime() === new Date(trip.timeOccurence).getTime() &&
+        existingTrip.pathOne === trip.pathOne &&
+        existingTrip.pathSecond === trip.pathSecond,
+    );
+
+    if (!isDuplicate) {
+      results.push({
+        ...trip,
+        isChecked: !dataToSave.some(
+          (item) =>
+            item.timeOccurence === trip.timeOccurence && item.pathOne === trip.pathOne && item.pathSecond === trip.pathSecond,
+        ),
+      });
+    }
   }
 
   if (results.length > 0) results = await tripService.insertTrip(results);
-  return res.status(httpStatus.CREATED).send(results);
+  return res.status(httpStatus.CREATED).send(true);
 });
 
 const exportData = catchAsync(async (req, res) => {
-  const filter = pick(req.body, ['from', 'to']);
-  const trips = await tripService.queryTrips(filter);
+  const filter = pick(req.body, ['from', 'to', 'search']);
+  const trips = await tripService.getTripsByFilter(filter);
 
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', 'attachment; filename=thong_ke_su_co.xlsx');
@@ -92,8 +113,8 @@ const exportData = catchAsync(async (req, res) => {
 
   // Insert dynamic header text into the merged cell
   const headerCell = worksheet.getCell('A1');
-  headerCell.value = 'Số sự cố DMZ ngày 17/09/2024'; // Dynamic header text, adjust as needed
-  headerCell.font = { bold: true }; // Add formatting like bold and size
+  headerCell.value = 'Thống kê sự cố';
+  headerCell.font = { bold: true };
   headerCell.alignment = { horizontal: 'center' }; // Center-align the text horizontally
 
   worksheet.getRow(2).values = ['Thời gian', 'Địa điểm', 'Vị trí', 'Cần kiểm tra'];
@@ -117,7 +138,15 @@ const exportData = catchAsync(async (req, res) => {
   res.end();
 });
 
+const getTrips = catchAsync(async (req, res) => {
+  const filter = pick(req.query, ['from', 'to', 'search']);
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+  const result = await tripService.queryTrips(filter, options);
+  res.send(result);
+});
+
 module.exports = {
   importData,
   exportData,
+  getTrips,
 };
