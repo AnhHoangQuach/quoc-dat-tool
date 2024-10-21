@@ -102,10 +102,10 @@ const exportData = catchAsync(async (req, res) => {
   let rowStart = 3;
   trips.forEach((item) => {
     const row = worksheet.getRow(rowStart);
-    row.getCell(1).value = item.timeOccurence;
+    row.getCell(1).value = moment(item.timeOccurence).format('DD/MM/YYYY HH:mm:ss');
     row.getCell(2).value = item.pathOne;
     row.getCell(3).value = item.pathSecond;
-    row.getCell(4).value = item.isCheck ? 'Có' : 'Không';
+    row.getCell(4).value = item.isChecked ? 'Có' : 'Không';
     row.commit();
     rowStart++;
   });
