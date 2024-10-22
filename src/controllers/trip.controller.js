@@ -60,12 +60,14 @@ const importData = catchAsync(async (req, res) => {
         indicator: row.getCell(9).value,
       };
 
-      const isDuplicate = tripToSave.some(
-        (trip) =>
-          new Date(trip.timeOccurence).getTime() === new Date(rowData.timeOccurence).getTime() &&
+      const isDuplicate = tripToSave.some((trip) => {
+        const timeDifference = Math.abs(new Date(trip.timeOccurence).getTime() - new Date(rowData.timeOccurence).getTime());
+        return (
+          (timeDifference <= 120000 || timeDifference === 0) &&
           trip.pathOne === rowData.pathOne &&
-          trip.pathSecond === rowData.pathSecond,
-      );
+          trip.pathSecond === rowData.pathSecond
+        );
+      });
 
       if (!isDuplicate) {
         tripToSave.push(rowData);
@@ -89,7 +91,9 @@ const importData = catchAsync(async (req, res) => {
         ...trip,
         isChecked: !dataToSave.some(
           (item) =>
-            item.timeOccurence === trip.timeOccurence && item.pathOne === trip.pathOne && item.pathSecond === trip.pathSecond,
+            item.timeOccurence === trip.timeOccurence &&
+            item.pathOne === trip.pathOne &&
+            item.pathSecond === trip.pathSecond,
         ),
       });
     }
