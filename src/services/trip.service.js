@@ -56,8 +56,39 @@ const queryTrips = async (filter, options) => {
   return trips;
 };
 
+const queryDashboard = async () => {
+  const trips = await Trip.aggregate([
+    {
+      $match: { pathSecond: { $exists: true, $ne: null } }  // Filter out documents where pathOne does not exist or is null
+    },
+    {
+      $group: {
+        _id: "$pathSecond",
+        pathOne: { $first: "$pathOne" },
+        count: { $sum: 1 },  // Count the occurrences
+      }
+    },
+    {
+      $sort: { count: -1 }  // Sort by count in descending order
+    },
+    {
+      $limit: 10  // Limit the result to top 10
+    },
+    {
+      $project: {
+        _id: 0,  // Remove the _id field
+        pathSecond: "$_id",
+        pathOne: 1, // Move the _id (which is pathOne) to the pathOne field
+        count: 1,  // Include the count of occurrences
+      }
+    }
+  ]);
+  return trips;
+};
+
 module.exports = {
   insertTrip,
   queryTrips,
   getTripsByFilter,
+  queryDashboard,
 };
