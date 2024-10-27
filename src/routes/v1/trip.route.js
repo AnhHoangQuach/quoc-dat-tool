@@ -17,6 +17,7 @@ const upload = multer({
 const router = express.Router();
 
 router.route('/').get(auth(), tripController.getTrips);
+router.route('/in-month').get(auth(), tripController.getTripsByFilter);
 router.route('/dashboard').get(auth(), tripController.queryDashboard)
 router.route('/import').post(auth('manageUsers'), upload.single('file'), tripController.importData);
 router.route('/export').post(auth(), tripController.exportData);

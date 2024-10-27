@@ -154,9 +154,15 @@ const queryDashboard = catchAsync(async (req, res) => {
   res.send(result)
 });
 
+const getTripsByFilter = catchAsync(async (req, res) => {
+  const result = await tripService.getTripsByFilter()
+  res.send(result)
+});
+
 module.exports = {
   importData,
   exportData,
   getTrips,
   queryDashboard,
+  getTripsByFilter
 };
