@@ -4,7 +4,7 @@ const insertTrip = async (data) => {
   return Trip.insertMany(data);
 };
 
-const getTripsByFilter = async (filter, options) => {
+const getTripsByFilter = async (filter) => {
   const query = {};
 
   if (filter?.from || filter?.to) {
@@ -23,7 +23,7 @@ const getTripsByFilter = async (filter, options) => {
     query.pathOne = { $regex: filter.search, $options: 'i' };
   }
 
-  const result = await Trip.find(query).setOptions(options);
+  const result = await Trip.find(query);
   return result;
 };
 
@@ -59,29 +59,29 @@ const queryTrips = async (filter, options) => {
 const queryDashboard = async () => {
   const trips = await Trip.aggregate([
     {
-      $match: { pathSecond: { $exists: true, $ne: null } }  // Filter out documents where pathOne does not exist or is null
+      $match: { pathSecond: { $exists: true, $ne: null } }, // Filter out documents where pathOne does not exist or is null
     },
     {
       $group: {
-        _id: "$pathSecond",
-        pathOne: { $first: "$pathOne" },
-        count: { $sum: 1 },  // Count the occurrences
-      }
+        _id: '$pathSecond',
+        pathOne: { $first: '$pathOne' },
+        count: { $sum: 1 }, // Count the occurrences
+      },
     },
     {
-      $sort: { count: -1 }  // Sort by count in descending order
+      $sort: { count: -1 }, // Sort by count in descending order
     },
     {
-      $limit: 10  // Limit the result to top 10
+      $limit: 10, // Limit the result to top 10
     },
     {
       $project: {
-        _id: 0,  // Remove the _id field
-        pathSecond: "$_id",
+        _id: 0, // Remove the _id field
+        pathSecond: '$_id',
         pathOne: 1, // Move the _id (which is pathOne) to the pathOne field
-        count: 1,  // Include the count of occurrences
-      }
-    }
+        count: 1, // Include the count of occurrences
+      },
+    },
   ]);
   return trips;
 };

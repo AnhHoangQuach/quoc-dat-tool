@@ -47,9 +47,14 @@ const importData = catchAsync(async (req, res) => {
   // Iterate through each row of the worksheet (starting from row 2 to skip headers)
   const tripToSave = [];
   worksheetTrip.eachRow(async (row, rowNumber) => {
-    if (rowNumber > 1 && ['Trip', 'Operated'].includes(row.getCell(8).value) && row.getCell(2).value.startsWith('DMZ')) {
+    if (
+      rowNumber > 1 &&
+      ['Trip', 'Operated'].includes(row.getCell(8).value) &&
+      row.getCell(2).value.startsWith('DMZ') &&
+      !row.getCell(2).value.startsWith('DMZ7')
+    ) {
       const rowData = {
-        timeOccurence: new Date(row.getCell(1).value).toISOString(),
+        timeOccurence: moment(row.getCell(1).value).utc().format(),
         pathOne: row.getCell(2).value,
         pathSecond: row.getCell(3).value,
         pathThree: row.getCell(4).value,
@@ -69,7 +74,16 @@ const importData = catchAsync(async (req, res) => {
         );
       });
 
-      if (!isDuplicate) {
+      const checkError = dataToSave.some((item) => {
+        const timeDifference = Math.abs(moment(item.timeOccurence).diff(moment(rowData.timeOccurence), 'minutes'));
+        return (
+          timeDifference <= 120 && // 2 hours in minutes
+          item.pathOne === rowData.pathOne &&
+          item.pathSecond === rowData.pathSecond
+        );
+      });
+
+      if (!isDuplicate && checkError) {
         tripToSave.push(rowData);
       }
     }
@@ -89,12 +103,13 @@ const importData = catchAsync(async (req, res) => {
     if (!isDuplicate) {
       results.push({
         ...trip,
-        isChecked: !dataToSave.some(
-          (item) =>
-            item.timeOccurence === trip.timeOccurence &&
+        isChecked: !dataToSave.some((item) => {
+          return (
+            moment(item.timeOccurence).format('HH:mm') === moment(trip.timeOccurence).format('HH:mm') &&
             item.pathOne === trip.pathOne &&
-            item.pathSecond === trip.pathSecond,
-        ),
+            item.pathSecond === trip.pathSecond
+          );
+        }),
       });
     }
   }
@@ -150,13 +165,13 @@ const getTrips = catchAsync(async (req, res) => {
 });
 
 const queryDashboard = catchAsync(async (req, res) => {
-  const result = await tripService.queryDashboard()
-  res.send(result)
+  const result = await tripService.queryDashboard();
+  res.send(result);
 });
 
 const getTripsByFilter = catchAsync(async (req, res) => {
-  const result = await tripService.getTripsByFilter()
-  res.send(result)
+  const result = await tripService.getTripsByFilter();
+  res.send(result);
 });
 
 module.exports = {
@@ -164,5 +179,5 @@ module.exports = {
   exportData,
   getTrips,
   queryDashboard,
-  getTripsByFilter
+  getTripsByFilter,
 };
