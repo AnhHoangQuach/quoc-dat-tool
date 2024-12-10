@@ -65,19 +65,24 @@ const updateUserById = async (userId, updateBody) => {
   return user;
 };
 
-/**
- * Delete user by id
- * @param {ObjectId} userId
- * @returns {Promise<User>}
- */
+
 const deleteUserById = async (userId) => {
-  const user = await getUserById(userId);
+  console.log('User ID received:', userId);
+
+  const user = await User.findById(userId);
+  console.log('User found:', user);
+
   if (!user) {
+    console.error('User not found');
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
-  await user.remove();
-  return user;
+
+  const deletedUser = await User.deleteOne({_id:userId});
+  console.log('Deleted user from database:', deletedUser);
+
+  return deletedUser;
 };
+
 
 module.exports = {
   createUser,
