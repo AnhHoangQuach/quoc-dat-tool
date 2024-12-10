@@ -30,9 +30,17 @@ const updateUser = catchAsync(async (req, res) => {
 });
 
 const deleteUser = catchAsync(async (req, res) => {
-  await userService.deleteUserById(req.params.userId);
-  res.status(httpStatus.NO_CONTENT).send();
+  console.log('Request params:', req.params.userId); // Log ID user được gửi đến backend
+
+  const deletedUser = await userService.deleteUserById(req.params.userId);
+
+  console.log('Deleted User:', deletedUser); // Log kết quả sau khi xóa user
+  res.status(httpStatus.OK).json({
+    message: 'User deleted successfully',
+    data: deletedUser,
+  });
 });
+
 
 module.exports = {
   createUser,
