@@ -83,6 +83,23 @@ const deleteUserById = async (userId) => {
   return deletedUser;
 };
 
+const updateAvatar = async (userId, avatarUrl) => {
+  try {
+    // Cập nhật avatar trong database
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { avatar: avatarUrl },
+      { new: true } // Trả về user sau khi cập nhật
+    );
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return user;
+  } catch (error) {
+    throw new Error(error.message || 'Error updating avatar');
+  }
+};
+
 
 module.exports = {
   createUser,
@@ -91,4 +108,5 @@ module.exports = {
   getUserByEmail,
   updateUserById,
   deleteUserById,
+  updateAvatar
 };
