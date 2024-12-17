@@ -65,7 +65,6 @@ const updateUserById = async (userId, updateBody) => {
   return user;
 };
 
-
 const deleteUserById = async (userId) => {
   console.log('User ID received:', userId);
 
@@ -77,29 +76,25 @@ const deleteUserById = async (userId) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-  const deletedUser = await User.deleteOne({_id:userId});
+  const deletedUser = await User.deleteOne({ _id: userId });
   console.log('Deleted user from database:', deletedUser);
 
   return deletedUser;
 };
 
 const updateAvatar = async (userId, avatarUrl) => {
-  try {
-    // Cập nhật avatar trong database
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { avatar: avatarUrl },
-      { new: true } // Trả về user sau khi cập nhật
-    );
-    if (!user) {
-      throw new Error('User not found');
-    }
-    return user;
-  } catch (error) {
-    throw new Error(error.message || 'Error updating avatar');
-  }
-};
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { avatar: avatarUrl }, // Cập nhật URL avatar
+    { new: true }, // Trả về user sau khi cập nhật
+  );
 
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  return user;
+};
 
 module.exports = {
   createUser,
@@ -108,5 +103,5 @@ module.exports = {
   getUserByEmail,
   updateUserById,
   deleteUserById,
-  updateAvatar
+  updateAvatar,
 };

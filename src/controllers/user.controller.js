@@ -44,14 +44,27 @@ const deleteUser = catchAsync(async (req, res) => {
 const uploadAvatar = catchAsync(async (req, res) => {
   try {
     const { userId } = req.params;
-    const avatarUrl = req.file.path;
 
-    const updateUser = await updateAvatar(userId, avatarUrl);
-    res.status(200).send({ message: 'Avatar upload successfully', user: updateUser });
+    if (!req.file) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'No file uploaded');
+    }
+    // Đường dẫn avatar từ file upload
+    let avatarUrl = req.file.path;
+
+    // Cập nhật avatar trong database thông qua service
+    const updatedUser = await updateAvatar(userId, avatarUrl);
+
+    // Gửi response
+    res.status(200).send({
+      message: 'Avatar uploaded successfully',
+      user: updatedUser,
+    });
   } catch (error) {
-    res.status(500).send({ message: error.message });
+    console.error('Error uploading avatar:', error);
+    res.status(500).send({ message: 'Failed to upload avatar' });
   }
 });
+
 
 module.exports = {
   createUser,
